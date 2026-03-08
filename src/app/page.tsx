@@ -7,12 +7,14 @@ import { executePipeline } from "@/lib/pipeline/executor";
 import PipelineCanvas from "@/components/pipeline/PipelineCanvas";
 import BlockPalette from "@/components/pipeline/BlockPalette";
 import PipelineResults from "@/components/pipeline/PipelineResults";
+import PromptEditor from "@/components/pipeline/PromptEditor";
 import BlueprintButton from "@/components/ui/BlueprintButton";
 import Link from "next/link";
 
 export default function HomePage() {
   const [inputFile, setInputFile] = useState<File | null>(null);
-  const [slots, setSlots] = useState<(PipelineBlock | null)[]>([null, null]);
+  const [slots, setSlots] = useState<(PipelineBlock | null)[]>([null, null, null]);
+  const [customPrompts, setCustomPrompts] = useState<Record<number, string>>({});
   const [execution, setExecution] = useState<PipelineExecutionState | null>(
     null
   );
@@ -72,14 +74,15 @@ export default function HomePage() {
     });
 
     await executePipeline(
-      { inputFile, slots },
+      { inputFile, slots, customPrompts },
       (state) => setExecution({ ...state })
     );
-  }, [inputFile, slots, hasValidPipeline]);
+  }, [inputFile, slots, customPrompts, hasValidPipeline]);
 
   const handleReset = useCallback(() => {
     setInputFile(null);
-    setSlots([null, null]);
+    setSlots([null, null, null]);
+    setCustomPrompts({});
     setExecution(null);
   }, []);
 
@@ -137,8 +140,28 @@ export default function HomePage() {
                 setExecution(null);
               }}
               slots={slots}
-              onSlotsChange={setSlots}
+              onSlotsChange={(newSlots) => {
+                // Initialize default prompts for newly placed blocks, clear removed ones
+                const next = { ...customPrompts };
+                newSlots.forEach((block, i) => {
+                  if (block?.defaultPrompt && !(i in next)) {
+                    next[i] = block.defaultPrompt;
+                  }
+                  if (!block) {
+                    delete next[i];
+                  }
+                });
+                setSlots(newSlots);
+                setCustomPrompts(next);
+              }}
               isExecuting={isExecuting}
+            />
+
+            <PromptEditor
+              slots={slots}
+              customPrompts={customPrompts}
+              onPromptsChange={setCustomPrompts}
+              disabled={isExecuting}
             />
 
             {/* Controls */}
@@ -185,6 +208,32 @@ export default function HomePage() {
                         className="block text-xs text-bp-accent hover:text-bp-text tracking-wider transition-colors mb-1"
                       >
                         → DOWNLOAD MODEL {i + 1} (GLB)
+                      </a>
+                    ))}
+                </div>
+              )}
+
+            {/* Download links for videos */}
+            {execution &&
+              !execution.isRunning &&
+              execution.stageResults.some((r) =>
+                r.items.some((item) => item.videoUrl)
+              ) && (
+                <div className="border border-bp-success/30 p-4">
+                  <p className="text-[10px] text-bp-success tracking-widest font-bold mb-2">
+                    DOWNLOADABLE VIDEOS
+                  </p>
+                  {execution.stageResults
+                    .flatMap((r) => r.items)
+                    .filter((item) => item.videoUrl)
+                    .map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.videoUrl!}
+                        download={`video-${i}.mp4`}
+                        className="block text-xs text-bp-accent hover:text-bp-text tracking-wider transition-colors mb-1"
+                      >
+                        → DOWNLOAD VIDEO {i + 1} (MP4)
                       </a>
                     ))}
                 </div>

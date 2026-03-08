@@ -29,7 +29,8 @@ async function executeLineArtStage(
   inputImages: string[] | null, // base64 data URLs from previous stage
   stageIndex: number,
   onProgress: ProgressCallback,
-  state: PipelineExecutionState
+  state: PipelineExecutionState,
+  customPrompt?: string
 ): Promise<{ result: StageResult; outputImages: string[] }> {
   const items: StageResultItem[] = [];
   const outputImages: string[] = [];
@@ -48,6 +49,7 @@ async function executeLineArtStage(
         const formData = new FormData();
         formData.append("file", file);
         formData.append("caption", "true");
+        if (customPrompt) formData.append("prompt", customPrompt);
 
         const response = await fetch("/api/convert-image", {
           method: "POST",
@@ -62,6 +64,8 @@ async function executeLineArtStage(
           inputBase64: inputImages[i],
           outputBase64: data.image,
           caption: data.caption,
+          originalSize: data.originalSize,
+          outputSize: data.lineArtSize,
         });
         outputImages.push(data.image);
       } catch (err) {
@@ -80,6 +84,7 @@ async function executeLineArtStage(
     const formData = new FormData();
     formData.append("file", inputFile);
     formData.append("generateCaptions", "true");
+    if (customPrompt) formData.append("prompt", customPrompt);
 
     const response = await fetch("/api/process-document-streaming", {
       method: "POST",
@@ -119,6 +124,8 @@ async function executeLineArtStage(
               inputBase64: event.originalBase64,
               outputBase64: event.lineArtBase64,
               caption: event.caption,
+              originalSize: event.originalSize,
+              outputSize: event.lineArtSize,
             });
             outputImages.push(event.lineArtBase64);
             state.currentImage = event.index + 1;
@@ -148,6 +155,7 @@ async function executeLineArtStage(
     const formData = new FormData();
     formData.append("file", inputFile);
     formData.append("caption", "true");
+    if (customPrompt) formData.append("prompt", customPrompt);
 
     const response = await fetch("/api/convert-image", {
       method: "POST",
@@ -163,6 +171,8 @@ async function executeLineArtStage(
       inputBase64: originalUrl,
       outputBase64: data.image,
       caption: data.caption,
+      originalSize: data.originalSize,
+      outputSize: data.lineArtSize,
     });
     outputImages.push(data.image);
     state.currentImage = 1;
@@ -266,15 +276,87 @@ async function execute3DModelStage(
 }
 
 /**
+ * Execute the Video Guide stage for a list of input images.
+ */
+async function executeVideoStage(
+  block: PipelineBlock,
+  inputFile: File,
+  inputImages: string[] | null,
+  stageIndex: number,
+  onProgress: ProgressCallback,
+  state: PipelineExecutionState,
+  customPrompt?: string
+): Promise<{ result: StageResult; outputImages: string[] }> {
+  const items: StageResultItem[] = [];
+  const images = inputImages || [URL.createObjectURL(inputFile)];
+
+  state.totalImages = images.length;
+  state.currentImage = 0;
+  onProgress({ ...state });
+
+  for (let i = 0; i < images.length; i++) {
+    try {
+      const blob = await fetch(images[i]).then((r) => r.blob());
+      const file = new File([blob], `image-${i}.png`, { type: "image/png" });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append(
+        "prompt",
+        customPrompt || block.defaultPrompt || ""
+      );
+
+      const response = await fetch("/api/generate-video", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Video generation failed");
+      }
+
+      const data = await response.json();
+      items.push({
+        id: `stage-${stageIndex}-video-${i}`,
+        inputBase64: images[i],
+        videoUrl: data.video,
+      });
+    } catch (err) {
+      items.push({
+        id: `stage-${stageIndex}-video-${i}`,
+        inputBase64: images[i],
+        error: err instanceof Error ? err.message : "Video generation failed",
+      });
+    }
+
+    state.currentImage = i + 1;
+    onProgress({ ...state });
+  }
+
+  return {
+    result: {
+      stageIndex,
+      blockId: block.id,
+      blockLabel: block.label,
+      items,
+    },
+    outputImages: [], // video is terminal
+  };
+}
+
+/**
  * Execute the full pipeline based on composed slots.
  */
 export async function executePipeline(
   config: PipelineConfig,
   onProgress: ProgressCallback
 ): Promise<void> {
-  const activeSlots = config.slots.filter(
-    (s): s is PipelineBlock => s !== null
-  );
+  const activeSlots: { block: PipelineBlock; originalIndex: number }[] = [];
+  for (let i = 0; i < config.slots.length; i++) {
+    const s = config.slots[i];
+    if (s !== null) activeSlots.push({ block: s, originalIndex: i });
+  }
 
   if (activeSlots.length === 0) return;
 
@@ -284,7 +366,9 @@ export async function executePipeline(
   let currentImages: string[] | null = null;
 
   for (let i = 0; i < activeSlots.length; i++) {
-    const block = activeSlots[i];
+    const { block, originalIndex } = activeSlots[i];
+    const customPrompt = config.customPrompts[originalIndex] || undefined;
+
     state.currentStage = i;
     state.stageResults = [...state.stageResults];
     onProgress({ ...state });
@@ -299,7 +383,8 @@ export async function executePipeline(
           currentImages,
           i,
           onProgress,
-          state
+          state,
+          customPrompt
         );
       } else if (block.id === "3d-model") {
         stageOutput = await execute3DModelStage(
@@ -309,6 +394,16 @@ export async function executePipeline(
           i,
           onProgress,
           state
+        );
+      } else if (block.id === "video-guide") {
+        stageOutput = await executeVideoStage(
+          block,
+          config.inputFile,
+          currentImages,
+          i,
+          onProgress,
+          state,
+          customPrompt
         );
       } else {
         continue;

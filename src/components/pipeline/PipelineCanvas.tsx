@@ -2,7 +2,6 @@
 
 import { useRef, useCallback } from "react";
 import { PipelineBlock } from "@/lib/pipeline/types";
-import { isCompatible, getFileInputType } from "@/lib/pipeline/constants";
 import DroppableSlot from "./DroppableSlot";
 import FileUploader from "@/components/ui/FileUploader";
 
@@ -25,51 +24,18 @@ export default function PipelineCanvas({
 
   const handleSlotDrop = useCallback(
     (slotIndex: number, block: PipelineBlock): boolean => {
-      // Determine what input type this slot will receive
-      let inputType: "document" | "image" | "image[]" | "3d-model";
-
-      if (slotIndex === 0) {
-        if (!inputFile) {
-          // No file yet, accept any block
-          const newSlots = [...slots];
-          newSlots[slotIndex] = block;
-          onSlotsChange(newSlots);
-          return true;
-        }
-        inputType = getFileInputType(inputFile);
-      } else {
-        const prevBlock = slots[slotIndex - 1];
-        if (!prevBlock) return false; // Previous slot empty
-        inputType = prevBlock.produces;
-      }
-
-      if (!isCompatible(block, inputType)) return false;
-
       const newSlots = [...slots];
       newSlots[slotIndex] = block;
-
-      // Clear subsequent slots if they become incompatible
-      for (let i = slotIndex + 1; i < newSlots.length; i++) {
-        const prevOutput = newSlots[i - 1]?.produces;
-        if (prevOutput && newSlots[i] && !isCompatible(newSlots[i]!, prevOutput)) {
-          newSlots[i] = null;
-        }
-      }
-
       onSlotsChange(newSlots);
       return true;
     },
-    [inputFile, slots, onSlotsChange]
+    [slots, onSlotsChange]
   );
 
   const handleSlotRemove = useCallback(
     (slotIndex: number) => {
       const newSlots = [...slots];
       newSlots[slotIndex] = null;
-      // Clear subsequent slots too
-      for (let i = slotIndex + 1; i < newSlots.length; i++) {
-        newSlots[i] = null;
-      }
       onSlotsChange(newSlots);
     },
     [slots, onSlotsChange]
@@ -171,6 +137,8 @@ export default function PipelineCanvas({
                   ? "IMAGES"
                   : outputType === "3d-model"
                   ? "3D MODEL"
+                  : outputType === "video"
+                  ? "VIDEO"
                   : "—"}
               </p>
             )}

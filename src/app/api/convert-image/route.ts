@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const withCaption = formData.get("caption") === "true";
+    const prompt = (formData.get("prompt") as string) || undefined;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "image/png";
 
-    const result = await convertToLineArt(imageBuffer, mimeType);
+    const result = await convertToLineArt(imageBuffer, mimeType, prompt);
 
     let caption: string | undefined;
     if (withCaption) {

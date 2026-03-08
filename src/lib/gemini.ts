@@ -36,9 +36,14 @@ async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
  */
 export async function convertToLineArt(
   imageBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  customPrompt?: string
 ): Promise<{ buffer: Buffer; mimeType: string }> {
   const base64 = imageBuffer.toString("base64");
+
+  const prompt =
+    customPrompt ||
+    "Convert this image into a clean CAD-style technical line art drawing. Use only black lines on a white background. Show clear outlines, edges, and structural details as an engineer would draw them. Remove all colors, textures, and shading — keep only precise contour lines. The output should look like a blueprint/engineering drawing.";
 
   const response = await withRetry(() =>
     client.models.generateContent({
@@ -54,7 +59,7 @@ export async function convertToLineArt(
               },
             },
             {
-              text: "Convert this image into a clean CAD-style technical line art drawing. Use only black lines on a white background. Show clear outlines, edges, and structural details as an engineer would draw them. Remove all colors, textures, and shading — keep only precise contour lines. The output should look like a blueprint/engineering drawing.",
+              text: prompt,
             },
           ],
         },
@@ -127,4 +132,73 @@ export async function generateCaption(
     .join("");
 
   return text || "Technical illustration — no caption generated";
+}
+
+/**
+ * Generate a video from an image using Veo 3.1.
+ */
+export async function generateVideo(
+  imageBuffer: Buffer,
+  mimeType: string,
+  prompt: string
+): Promise<{ videoBase64: string; mimeType: string }> {
+  const base64 = imageBuffer.toString("base64");
+
+  const operation = await withRetry(() =>
+    client.models.generateVideos({
+      model: "veo-3.1-generate-preview",
+      prompt,
+      image: {
+        imageBytes: base64,
+        mimeType,
+      },
+      config: {
+        aspectRatio: "16:9",
+        numberOfVideos: 1,
+      },
+    })
+  );
+
+  // Poll for completion — Veo can take up to 6 minutes
+  let result = operation;
+  while (!result.done) {
+    await new Promise((r) => setTimeout(r, 10000));
+    result = await client.operations.getVideosOperation({
+      operation: result,
+    });
+  }
+
+  const video = result.response?.generatedVideos?.[0]?.video;
+  if (!video) {
+    throw new Error("Veo returned no video");
+  }
+
+  // Get video bytes — SDK provides base64 string directly
+  if (video.videoBytes) {
+    return {
+      videoBase64: video.videoBytes,
+      mimeType: "video/mp4",
+    };
+  }
+
+  // Fallback: fetch from URI with authentication
+  if (video.uri) {
+    // Try with Bearer token first
+    let res = await fetch(video.uri, {
+      headers: { Authorization: `Bearer ${process.env.GEMINI_API_KEY}` },
+    });
+    if (!res.ok) {
+      // Try with API key as query param (Google AI Studio style)
+      const urlWithKey = `${video.uri}${video.uri.includes("?") ? "&" : "?"}key=${process.env.GEMINI_API_KEY}`;
+      res = await fetch(urlWithKey);
+    }
+    if (!res.ok) throw new Error(`Failed to fetch video from URI: ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    return {
+      videoBase64: buf.toString("base64"),
+      mimeType: "video/mp4",
+    };
+  }
+
+  throw new Error("Veo returned video with no bytes or URI");
 }

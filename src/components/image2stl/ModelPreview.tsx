@@ -15,6 +15,11 @@ export default function ModelPreview({ glbUrl }: ModelPreviewProps) {
   useEffect(() => {
     if (!containerRef.current || !glbUrl) return;
 
+    // Proxy external URLs through our API to avoid CORS issues
+    const loadUrl = glbUrl.startsWith("/")
+      ? glbUrl
+      : `/api/proxy-glb?url=${encodeURIComponent(glbUrl)}`;
+
     const container = containerRef.current;
     const width = container.clientWidth;
     const height = 400;
@@ -72,7 +77,7 @@ export default function ModelPreview({ glbUrl }: ModelPreviewProps) {
     // Load GLB model
     const loader = new GLTFLoader();
     loader.load(
-      glbUrl,
+      loadUrl,
       (gltf) => {
         const model = gltf.scene;
 

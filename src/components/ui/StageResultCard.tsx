@@ -3,6 +3,13 @@
 import { useEffect, useRef } from "react";
 import { animate } from "animejs";
 import { StageResult } from "@/lib/pipeline/types";
+import ModelPreview from "@/components/image2stl/ModelPreview";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 interface StageResultCardProps {
   result: StageResult;
@@ -48,6 +55,11 @@ export default function StageResultCard({ result }: StageResultCardProps) {
                     <div>
                       <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">
                         INPUT
+                        {item.originalSize != null && (
+                          <span className="ml-2 text-bp-text-muted/70">
+                            [{formatBytes(item.originalSize)}]
+                          </span>
+                        )}
                       </p>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -61,6 +73,11 @@ export default function StageResultCard({ result }: StageResultCardProps) {
                     <div>
                       <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">
                         OUTPUT
+                        {item.outputSize != null && (
+                          <span className="ml-2 text-bp-text-muted/70">
+                            [{formatBytes(item.outputSize)}]
+                          </span>
+                        )}
                       </p>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -70,7 +87,7 @@ export default function StageResultCard({ result }: StageResultCardProps) {
                       />
                     </div>
                   )}
-                  {item.thumbnailUrl && (
+                  {item.thumbnailUrl && !item.modelUrl && (
                     <div>
                       <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">
                         3D PREVIEW
@@ -84,6 +101,45 @@ export default function StageResultCard({ result }: StageResultCardProps) {
                     </div>
                   )}
                 </div>
+                {item.modelUrl && (
+                  <div className="mt-3">
+                    <ModelPreview glbUrl={item.modelUrl} />
+                  </div>
+                )}
+                {item.videoUrl && (
+                  <div className="mt-3">
+                    <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">
+                      GENERATED VIDEO
+                    </p>
+                    <video
+                      src={item.videoUrl}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      className="w-full border border-bp-border/30 bg-black"
+                    />
+                  </div>
+                )}
+                {item.originalSize != null && item.outputSize != null && (
+                  <div className="mt-2 pt-2 border-t border-bp-border/30 flex items-center gap-3">
+                    <span className="text-[9px] text-bp-accent tracking-widest font-bold">
+                      SIZE
+                    </span>
+                    <span className="text-[10px] text-bp-text-muted tracking-wider">
+                      {formatBytes(item.originalSize)} → {formatBytes(item.outputSize)}
+                    </span>
+                    {item.outputSize < item.originalSize ? (
+                      <span className="text-[9px] text-bp-success tracking-widest font-bold px-1.5 py-0.5 border border-bp-success/30 bg-bp-success/10">
+                        {Math.round((1 - item.outputSize / item.originalSize) * 100)}% SMALLER
+                      </span>
+                    ) : (
+                      <span className="text-[9px] text-bp-warning tracking-widest font-bold px-1.5 py-0.5 border border-bp-warning/30 bg-bp-warning/10">
+                        +{Math.round((item.outputSize / item.originalSize - 1) * 100)}% LARGER
+                      </span>
+                    )}
+                  </div>
+                )}
                 {item.caption && (
                   <div className="mt-2 pt-2 border-t border-bp-border/30">
                     <span className="text-[9px] text-bp-accent tracking-widest font-bold mr-2">

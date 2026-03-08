@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   const generateCaptions = formData.get("generateCaptions") !== "false";
+  const prompt = (formData.get("prompt") as string) || undefined;
 
   if (!file) {
     return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
         for (let i = 0; i < validImages.length; i++) {
           const img = validImages[i];
           try {
-            const lineArtResult = await convertToLineArt(img.data, img.mimeType);
+            const lineArtResult = await convertToLineArt(img.data, img.mimeType, prompt);
 
             let caption: string | undefined;
             if (generateCaptions) {
