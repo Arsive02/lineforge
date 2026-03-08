@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --bp-bg: #0a1628;
+  --bp-bg-light: #0f1f3d;
+  --bp-grid: rgba(59, 130, 246, 0.08);
+  --bp-grid-major: rgba(59, 130, 246, 0.15);
+  --bp-accent: #22d3ee;
+  --bp-accent-dim: rgba(34, 211, 238, 0.3);
+  --bp-text: #e0f2fe;
+  --bp-text-muted: #94a3b8;
+  --bp-border: rgba(59, 130, 246, 0.25);
+  --bp-success: #34d399;
+  --bp-error: #f87171;
+  --bp-warning: #fbbf24;
+}
+
+@theme inline {
+  --color-background: var(--bp-bg);
+  --color-foreground: var(--bp-text);
+  --color-bp-bg: var(--bp-bg);
+  --color-bp-bg-light: var(--bp-bg-light);
+  --color-bp-accent: var(--bp-accent);
+  --color-bp-accent-dim: var(--bp-accent-dim);
+  --color-bp-text: var(--bp-text);
+  --color-bp-text-muted: var(--bp-text-muted);
+  --color-bp-border: var(--bp-border);
+  --color-bp-success: var(--bp-success);
+  --color-bp-error: var(--bp-error);
+  --color-bp-warning: var(--bp-warning);
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+body {
+  background: var(--bp-bg);
+  color: var(--bp-text);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Blueprint grid scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bp-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bp-border);
+  border-radius: 3px;
+}
+
+/* Glow effect for accents */
+.glow-accent {
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.3), 0 0 30px rgba(34, 211, 238, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+
+/* Blueprint line animation */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-draw {
+  animation: draw-line 2s ease-in-out forwards;
+}
+
+/* Pulse animation */
+@keyframes blueprint-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.animate-bp-pulse {
+  animation: blueprint-pulse 2s ease-in-out infinite;
+}
