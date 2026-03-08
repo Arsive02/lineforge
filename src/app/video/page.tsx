@@ -95,12 +95,24 @@ export default function VideoPage() {
               onFileSelect={handleFileSelect}
               label="Drop an image to generate a video guide"
             />
-            <div className="mt-2 flex gap-3 text-[10px] text-bp-text-muted/60 tracking-wider">
+            <div className="mt-2 flex items-center gap-3 text-[10px] text-bp-text-muted/60 tracking-wider">
               <span>PNG</span>
               <span>·</span>
               <span>JPEG</span>
               <span>·</span>
               <span>WEBP</span>
+              <span className="ml-auto" />
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await fetch("/examples/pi.png");
+                  const blob = await res.blob();
+                  handleFileSelect(new File([blob], "pi.png", { type: "image/png" }));
+                }}
+                className="text-[10px] text-bp-accent hover:text-bp-text tracking-wider transition-colors cursor-pointer"
+              >
+                TRY WITH EXAMPLE →
+              </button>
             </div>
           </div>
 

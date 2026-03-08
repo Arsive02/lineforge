@@ -20,7 +20,7 @@ export default function DocumentUploader({ onFileSelect }: DocumentUploaderProps
         onFileSelect={onFileSelect}
         label="Drop document or image file"
       />
-      <div className="mt-2 flex gap-3 flex-wrap text-[10px] text-bp-text-muted/60 tracking-wider">
+      <div className="mt-2 flex items-center gap-3 flex-wrap text-[10px] text-bp-text-muted/60 tracking-wider">
         <span>PDF</span>
         <span>·</span>
         <span>DOCX</span>
@@ -34,6 +34,18 @@ export default function DocumentUploader({ onFileSelect }: DocumentUploaderProps
         <span>JPG</span>
         <span>·</span>
         <span>WEBP</span>
+        <span className="ml-auto" />
+        <button
+          type="button"
+          onClick={async () => {
+            const res = await fetch("/examples/pi.png");
+            const blob = await res.blob();
+            onFileSelect(new File([blob], "pi.png", { type: "image/png" }));
+          }}
+          className="text-[10px] text-bp-accent hover:text-bp-text tracking-wider transition-colors cursor-pointer"
+        >
+          TRY WITH EXAMPLE →
+        </button>
       </div>
     </div>
   );

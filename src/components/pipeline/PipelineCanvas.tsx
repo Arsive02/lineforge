@@ -68,10 +68,22 @@ export default function PipelineCanvas({
               onFileSelect={onFileSelect}
               compact
             />
-            {inputFile && (
+            {inputFile ? (
               <p className="text-[8px] text-bp-accent tracking-wider mt-1 text-center truncate">
                 {inputFile.name}
               </p>
+            ) : (
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await fetch("/examples/pi.png");
+                  const blob = await res.blob();
+                  onFileSelect(new File([blob], "pi.png", { type: "image/png" }));
+                }}
+                className="text-[8px] text-bp-accent hover:text-bp-text tracking-wider mt-1 transition-colors cursor-pointer"
+              >
+                TRY EXAMPLE →
+              </button>
             )}
           </div>
         </div>
