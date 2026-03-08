@@ -1,5 +1,5 @@
 export type BlockInputType = "document" | "image" | "image[]" | "3d-model" | "video";
-export type BlockOutputType = "image[]" | "3d-model" | "video" | "svg";
+export type BlockOutputType = "image[]" | "3d-model" | "video";
 
 export interface PipelineBlock {
   id: string;
@@ -20,6 +20,7 @@ export interface PipelineConfig {
   inputFile: File;
   slots: (PipelineBlock | null)[];
   customPrompts: Record<number, string>; // slotIndex → prompt
+  generateSvg?: boolean;
 }
 
 export interface StageResult {

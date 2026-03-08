@@ -20,14 +20,6 @@ export const PIPELINE_BLOCKS: PipelineBlock[] = [
     icon: "M16 4L28 10V22L16 28L4 22V10L16 4ZM16 16L28 10M16 16L4 10M16 16V28",
   },
   {
-    id: "svg-vectorize",
-    label: "SVG Vectorizer",
-    description: "Convert raster images to clean SVG vector graphics",
-    accepts: ["image", "image[]"],
-    produces: "svg",
-    icon: "M12 2L2 7L12 12L22 7L12 2ZM2 17L12 22L22 17M2 12L12 17L22 12",
-  },
-  {
     id: "video-guide",
     label: "Video Guide",
     description: "Generate cinematic multi-angle guide video using Veo 3.1",

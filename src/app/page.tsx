@@ -15,6 +15,7 @@ export default function HomePage() {
   const [inputFile, setInputFile] = useState<File | null>(null);
   const [slots, setSlots] = useState<(PipelineBlock | null)[]>([null, null, null]);
   const [customPrompts, setCustomPrompts] = useState<Record<number, string>>({});
+  const [generateSvg, setGenerateSvg] = useState(false);
   const [execution, setExecution] = useState<PipelineExecutionState | null>(
     null
   );
@@ -74,15 +75,16 @@ export default function HomePage() {
     });
 
     await executePipeline(
-      { inputFile, slots, customPrompts },
+      { inputFile, slots, customPrompts, generateSvg },
       (state) => setExecution({ ...state })
     );
-  }, [inputFile, slots, customPrompts, hasValidPipeline]);
+  }, [inputFile, slots, customPrompts, generateSvg, hasValidPipeline]);
 
   const handleReset = useCallback(() => {
     setInputFile(null);
     setSlots([null, null, null]);
     setCustomPrompts({});
+    setGenerateSvg(false);
     setExecution(null);
   }, []);
 
@@ -171,7 +173,7 @@ export default function HomePage() {
             />
 
             {/* Controls */}
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
               <BlueprintButton
                 onClick={handleExecute}
                 disabled={!hasValidPipeline || isExecuting}
@@ -188,6 +190,19 @@ export default function HomePage() {
                   RESET
                 </BlueprintButton>
               )}
+
+              <label className="flex items-center gap-2 ml-auto cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={generateSvg}
+                  onChange={(e) => setGenerateSvg(e.target.checked)}
+                  disabled={isExecuting}
+                  className="accent-bp-accent w-3.5 h-3.5 cursor-pointer"
+                />
+                <span className="text-[10px] text-bp-text-muted tracking-widest">
+                  ALSO GENERATE SVG
+                </span>
+              </label>
             </div>
 
             {/* Results */}
