@@ -8,6 +8,7 @@ const navItems = [
   { href: "/", label: "HOME" },
   { href: "/doc2cad", label: "DOC2CAD" },
   { href: "/image2stl", label: "IMAGE2 3D" },
+  { href: "/video", label: "VIDEO" },
 ];
 
 export default function Navbar() {

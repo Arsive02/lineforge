@@ -128,6 +128,12 @@ export default function HomePage() {
               >
                 → IMAGE2 3D
               </Link>
+              <Link
+                href="/video"
+                className="block text-[10px] text-bp-accent tracking-wider hover:text-bp-text transition-colors"
+              >
+                → VIDEO GUIDE
+              </Link>
             </div>
           </div>
 
