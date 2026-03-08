@@ -1,36 +1,39 @@
 import sharp from "sharp";
 
 /**
- * Convert a raster image buffer to SVG using edge detection and path tracing.
- * Falls back to a simplified approach if potrace native module isn't available.
+ * Convert a raster image buffer to SVG using potrace.
+ * Uses sharp for image decoding to avoid Jimp compatibility issues.
  */
-export async function rasterToSvg(
-  imageBuffer: Buffer
-): Promise<string> {
-  // Try using potrace native module
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const potrace = require("potrace") as { trace: (buf: Buffer, opts: Record<string, unknown>, cb: (err: Error | null, svg: string) => void) => void };
-    return new Promise((resolve, reject) => {
-      potrace.trace(imageBuffer, { color: "#000000", threshold: 128 }, (err: Error | null, svg: string) => {
-        if (err) reject(err);
-        else resolve(svg);
-      });
-    });
-  } catch {
-    // Fallback: convert to high-contrast PNG via sharp and create a simple SVG embed
-    const png = await sharp(imageBuffer)
-      .threshold(128)
-      .png()
-      .toBuffer();
+export async function rasterToSvg(imageBuffer: Buffer): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const potrace = require("potrace");
 
-    const metadata = await sharp(imageBuffer).metadata();
-    const w = metadata.width || 800;
-    const h = metadata.height || 600;
-    const b64 = png.toString("base64");
+  const { data, info } = await sharp(imageBuffer)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <image href="data:image/png;base64,${b64}" width="${w}" height="${h}"/>
-</svg>`;
+  const P = new potrace.Potrace();
+  P.setParameters({ color: "#000000", threshold: 128 });
+
+  // Build a Jimp-compatible image object so potrace can process it
+  interface JimpLike {
+    bitmap: { width: number; height: number; data: Buffer };
+    scan(x: number, y: number, w: number, h: number, cb: (this: JimpLike, x: number, y: number, idx: number) => void): JimpLike;
   }
+
+  const image: JimpLike = {
+    bitmap: { width: info.width, height: info.height, data },
+    scan(x, y, w, h, cb) {
+      for (let j = y; j < y + h; j++) {
+        for (let i = x; i < x + w; i++) {
+          cb.call(this, i, j, (j * info.width + i) * 4);
+        }
+      }
+      return this;
+    },
+  };
+
+  P._processLoadedImage(image);
+  return P.getSVG() as string;
 }
