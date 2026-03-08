@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateVideo } from "@/lib/gemini";
 
-export const maxDuration = 600; // Veo can take up to 6 minutes
+export const maxDuration = 300; // Vercel hobby plan max
 
 export async function POST(request: NextRequest) {
   try {
