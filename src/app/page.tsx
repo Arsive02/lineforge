@@ -213,6 +213,32 @@ export default function HomePage() {
                 </div>
               )}
 
+            {/* Download links for SVGs */}
+            {execution &&
+              !execution.isRunning &&
+              execution.stageResults.some((r) =>
+                r.items.some((item) => item.svgData)
+              ) && (
+                <div className="border border-bp-success/30 p-4">
+                  <p className="text-[10px] text-bp-success tracking-widest font-bold mb-2">
+                    DOWNLOADABLE SVGS
+                  </p>
+                  {execution.stageResults
+                    .flatMap((r) => r.items)
+                    .filter((item) => item.svgData)
+                    .map((item, i) => (
+                      <a
+                        key={i}
+                        href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(item.svgData!)}`}
+                        download={`vector-${i}.svg`}
+                        className="block text-xs text-bp-accent hover:text-bp-text tracking-wider transition-colors mb-1"
+                      >
+                        → DOWNLOAD SVG {i + 1}
+                      </a>
+                    ))}
+                </div>
+              )}
+
             {/* Download links for videos */}
             {execution &&
               !execution.isRunning &&

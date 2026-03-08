@@ -106,6 +106,24 @@ export default function StageResultCard({ result }: StageResultCardProps) {
                     <ModelPreview glbUrl={item.modelUrl} />
                   </div>
                 )}
+                {item.svgData && (
+                  <div className="mt-3">
+                    <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">
+                      SVG OUTPUT
+                    </p>
+                    <div
+                      className="w-full border border-bp-border/30 bg-white p-2"
+                      dangerouslySetInnerHTML={{ __html: item.svgData }}
+                    />
+                    <a
+                      href={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(item.svgData)}`}
+                      download={`vector-${item.id}.svg`}
+                      className="inline-block mt-2 text-[10px] text-bp-accent hover:text-bp-text tracking-wider transition-colors"
+                    >
+                      → DOWNLOAD SVG
+                    </a>
+                  </div>
+                )}
                 {item.videoUrl && (
                   <div className="mt-3">
                     <p className="text-[10px] text-bp-text-muted tracking-widest mb-1">

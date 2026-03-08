@@ -1,5 +1,5 @@
 export type BlockInputType = "document" | "image" | "image[]" | "3d-model" | "video";
-export type BlockOutputType = "image[]" | "3d-model" | "video";
+export type BlockOutputType = "image[]" | "3d-model" | "video" | "svg";
 
 export interface PipelineBlock {
   id: string;
@@ -37,6 +37,7 @@ export interface StageResultItem {
   modelUrl?: string;
   thumbnailUrl?: string;
   videoUrl?: string;
+  svgData?: string;
   originalSize?: number;
   outputSize?: number;
   error?: string;

@@ -139,6 +139,8 @@ export default function PipelineCanvas({
                   ? "3D MODEL"
                   : outputType === "video"
                   ? "VIDEO"
+                  : outputType === "svg"
+                  ? "SVG"
                   : "—"}
               </p>
             )}

@@ -346,6 +346,73 @@ async function executeVideoStage(
 }
 
 /**
+ * Execute the SVG Vectorization stage for a list of input images.
+ */
+async function executeSvgStage(
+  block: PipelineBlock,
+  inputFile: File,
+  inputImages: string[] | null,
+  stageIndex: number,
+  onProgress: ProgressCallback,
+  state: PipelineExecutionState
+): Promise<{ result: StageResult; outputImages: string[] }> {
+  const items: StageResultItem[] = [];
+  const images = inputImages || [URL.createObjectURL(inputFile)];
+
+  state.totalImages = images.length;
+  state.currentImage = 0;
+  onProgress({ ...state });
+
+  for (let i = 0; i < images.length; i++) {
+    try {
+      const blob = await fetch(images[i]).then((r) => r.blob());
+      const file = new File([blob], `image-${i}.png`, { type: "image/png" });
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/vectorize", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Vectorization failed");
+      }
+
+      const svgText = await response.text();
+      items.push({
+        id: `stage-${stageIndex}-svg-${i}`,
+        inputBase64: images[i],
+        svgData: svgText,
+        originalSize: blob.size,
+        outputSize: new Blob([svgText]).size,
+      });
+    } catch (err) {
+      items.push({
+        id: `stage-${stageIndex}-svg-${i}`,
+        inputBase64: images[i],
+        error: err instanceof Error ? err.message : "Vectorization failed",
+      });
+    }
+
+    state.currentImage = i + 1;
+    onProgress({ ...state });
+  }
+
+  return {
+    result: {
+      stageIndex,
+      blockId: block.id,
+      blockLabel: block.label,
+      items,
+    },
+    outputImages: [], // SVG is terminal
+  };
+}
+
+/**
  * Execute the full pipeline based on composed slots.
  */
 export async function executePipeline(
@@ -388,6 +455,15 @@ export async function executePipeline(
         );
       } else if (block.id === "3d-model") {
         stageOutput = await execute3DModelStage(
+          block,
+          config.inputFile,
+          currentImages,
+          i,
+          onProgress,
+          state
+        );
+      } else if (block.id === "svg-vectorize") {
+        stageOutput = await executeSvgStage(
           block,
           config.inputFile,
           currentImages,
